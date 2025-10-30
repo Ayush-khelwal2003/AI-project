@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mario Trap Avoidance - AI Hybrid Search</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>
+                <span>⚡</span>
+                Mario Trap Avoidance
+                <span>🎮</span>
+            </h1>
+            <p class="subtitle">AI Hybrid Search: A* Algorithm + Logical Reasoning</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="grid-container">
+                <div id="status" class="status info">Click "New Grid" to start playing!</div>
+                <div id="grid" class="grid"></div>
+            </div>
+            
+            <div class="sidebar">
+                <div class="control-panel">
+                    <h3 class="panel-title">🎛️ Controls</h3>
+                    <div class="controls">
+                        <button class="btn-secondary" onclick="newGrid()">
+                            🔄 New Grid
+                        </button>
+                        <button class="btn-primary" onclick="findPath()" id="findPathBtn">
+                            🔍 Find Path
+                        </button>
+                        <button class="btn-primary" onclick="runSimulation()" id="runBtn" disabled>
+                            ▶️ Run Simulation
+                        </button>
+                        <button class="btn-danger" onclick="reset()">
+                            ⏹️ Reset
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="stats-panel">
+                    <h3 class="panel-title">📊 Statistics</h3>
+                    <div class="stat-item">
+                        <span class="stat-label">Nodes Explored:</span>
+                        <span class="stat-value" id="explored">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Paths Pruned:</span>
+                        <span class="stat-value" id="pruned">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Path Length:</span>
+                        <span class="stat-value" id="pathLength">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Efficiency:</span>
+                        <span class="stat-value" id="efficiency">0%</span>
+                    </div>
+                </div>
+                
+                <div class="legend-panel">
+                    <h3 class="panel-title">📖 Legend</h3>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:#ef4444;">🔴</div>
+                        <span>Mario / Start</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:#10b981;">🏁</div>
+                        <span>Goal</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:#2d3748; color: white;">💣</div>
+                        <span>Trap</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:#ffd700;">⚠️</div>
+                        <span>Dangerous Zone</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:#3b82f6;">🔵</div>
+                        <span>Optimal Path</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:#e9d5ff;">·</div>
+                        <span>Explored</span>
+                    </div>
+                </div>
+
+                <div class="info-panel">
+                    <h3 class="panel-title">ℹ️ How It Works</h3>
+                    <div class="info-content">
+                        <p><strong>A* Algorithm:</strong> Finds optimal path using heuristics</p>
+                        <p><strong>Logical Reasoning:</strong> Prunes unsafe paths before exploration</p>
+                        <p><strong>Smart Decisions:</strong> Avoids traps and dangerous zones</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Created by <a href="https://github.com/Ayush-khelwal2003" target="_blank">Ayush Khelwal</a> | 
+            <a href="https://github.com/Ayush-khelwal2003/AI-project" target="_blank">View on GitHub</a></p>
+        </footer>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
