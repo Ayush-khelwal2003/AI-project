@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MARIO TRAP AVOIDANCE</title>
+
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      background: #000;
+      overflow: hidden;
+      color: #fff;
+    }
+
+    .bg {
+      position: fixed;
+      inset: 0;
+      background-image: url("mario.jpg");
+      background-size: cover;
+      background-position: center;
+      z-index: 0;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      z-index: 1;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: clamp(32px, 6vw, 60px);
+      font-weight: 800;
+      letter-spacing: 4px;
+      margin-bottom: 50px;
+      text-transform: uppercase;
+      text-shadow: 0 6px 28px rgba(0,0,0,0.8);
+    }
+
+    #playBtn {
+      --size: 170px;
+      width: var(--size);
+      height: var(--size);
+      border-radius: 50%;
+      background: linear-gradient(180deg, #ff3b3b, #b80000);
+      border: 3px solid rgba(255,255,255,0.3);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    #playBtn:hover {
+      transform: scale(1.06);
+      box-shadow: 0 20px 50px rgba(255,60,60,0.7);
+    }
+
+    .triangle {
+      width: 0;
+      height: 0;
+      border-left: 45px solid #fff;
+      border-top: 28px solid transparent;
+      border-bottom: 28px solid transparent;
+      margin-left: 6px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Background Music -->
+  <audio id="bgMusic" src="m.mp3.mp3" loop></audio>
+
+  <div class="bg"></div>
+
+  <div class="overlay">
+    <h1>MARIO TRAP AVOIDANCE</h1>
+
+    <div id="playBtn">
+      <div class="triangle"></div>
+    </div>
+  </div>
+
+<script>
+  const music = document.getElementById("bgMusic");
+
+  function startMusic() {
+    music.play().catch(e => console.log("Blocked:", e));
+    document.removeEventListener("click", startMusic);
+    document.removeEventListener("touchstart", startMusic);
+    document.removeEventListener("keydown", startMusic);
+  }
+
+  // 🚀 Start music on ANY user interaction
+  document.addEventListener("click", startMusic);
+  document.addEventListener("touchstart", startMusic);
+  document.addEventListener("keydown", startMusic);
+
+  // Play button → go to game page
+  document.getElementById("playBtn").onclick = () => {
+    music.play();
+    window.location.href = "game.html";
+  };
+</script>
+
+</body>
+</html>

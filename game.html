@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MARIO TRAP AVOIDANCE</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif, system-ui;
+            user-select: none;
+            overflow: hidden;
+            background-color: #f0f4f8;
+            display: flex;
+        }
+        #dashboard {
+            width: 350px;
+            flex-shrink: 0;
+            background-color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 1.5rem;
+            z-index: 10;
+            height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        #game-container {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+            z-index: 1;
+        }
+        #game-info {
+            position: absolute;
+            top: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3;
+            padding: 1rem 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            text-align: center;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .info-box-info {
+            background-color: rgba(239, 246, 255, 0.95); /* bg-blue-50 */
+            color: #2563eb; /* text-blue-600 */
+            border: 1px solid #bfdbfe; /* border-blue-200 */
+        }
+        .info-box-win {
+            background-color: rgba(240, 253, 244, 0.95); /* bg-green-50 */
+            color: #16a34a; /* text-green-600 */
+            border: 1px solid #bbf7d0; /* border-green-200 */
+        }
+        .info-box-lose {
+            background-color: rgba(254, 242, 242, 0.95); /* bg-red-50 */
+            color: #dc2626; /* text-red-600 */
+            border: 1px solid #fecaca; /* border-red-200 */
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            color: white;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: #94a3b8;
+        }
+        .btn-blue { background-color: #3b82f6; }
+        .btn-blue:hover:not(:disabled) { background-color: #2563eb; }
+        .btn-green { background-color: #22c55e; }
+        .btn-green:hover:not(:disabled) { background-color: #16a34a; }
+        .btn-red { background-color: #ef4444; }
+        .btn-red:hover:not(:disabled) { background-color: #dc2626; }
+        .btn-yellow { background-color: #eab308; }
+        .btn-yellow:hover:not(:disabled) { background-color: #ca8a04; }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            padding: 0.5rem;
+            background-color: #f8fafc;
+            border-radius: 0.375rem;
+        }
+        .legend-color {
+            width: 24px;
+            height: 24px;
+            border-radius: 0.375rem;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            padding: 0.5rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .stat-item:last-child { border-bottom: none; }
+        .stat-label { font-weight: 500; color: #475569; }
+        .stat-value { font-weight: 600; color: #1e293b; }
+        
+        .hint-box {
+            background-color: #fefce8; /* bg-yellow-50 */
+            border: 1px solid #fde047; /* border-yellow-300 */
+            color: #a16207; /* text-yellow-800 */
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100">
+    
+    <div id="dashboard">
+        <h1 class="text-2xl font-bold text-center mb-4">MARIO TRAP AVOIDANCE</h1>
+        
+        <!-- New Difficulty Selection -->
+        <h2 class="text-lg font-bold mb-2">Select Difficulty</h2>
+        <div id="difficulty-select" class="flex flex-col gap-2 mb-4">
+            <!-- Text updated to reflect new rules -->
+            <button class="btn btn-green w-full" data-difficulty="easy">Easy (1 Zombie, 1 Booster)</button>
+            <button class="btn btn-yellow w-full" data-difficulty="medium">Medium (2 Zombies, 2 Boosters)</button>
+            <button class="btn btn-red w-full" data-difficulty="hard">Hard (3 Zombies, 3 Boosters)</button>
+        </div>
+        
+        <button id="restart-game-btn" class="btn btn-blue w-full text-lg mt-2">Restart Game</button>
+        
+        <!-- Quit Game Button -->
+        <a href="index.html" class="btn btn-red w-full text-lg mt-4 text-center">Quit Game</a>
+
+        <hr class="my-6 border-gray-300">
+
+        <div class="hint-box mb-6">
+            <span>💡</span>
+            <div>
+                Hold **Spacebar** to activate Mario's 
+                <strong class="font-bold">Optimal AI</strong>.
+            </div>
+        </div>
+
+        <h2 class="text-xl font-bold mb-3">Legend</h2>
+        <div class="flex flex-col gap-2 mb-6">
+            <div class="legend-item"><div class="legend-color" style="background-color: #4ade80;"></div> Mario / Start</div>
+            <div class="legend-item"><div class="legend-color" style="background-color: #f43f5e;"></div> Goal</div>
+            <div class="legend-item"><div class="legend-color" style="background-color: #8A2BE2;"></div> Bomb (Obstacle)</div>
+            <div class="legend-item"><div class="legend-color" style="background-color: #fcc700;"></div> Booster</div>
+            <div class="legend-item"><div class="legend-color" style="background-color: #22c55e; opacity: 0.7;"></div> Zombie</div>
+            <div class="legend-item"><div class="legend-color" style="background-color: #eeeeee; border-width: 2px; border-color: #999999;"></div> Empty Cell</div>
+        </div>
+
+        <h2 class="text-xl font-bold mb-3">Statistics</h2>
+        <div id="stats-panel" class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+            <div class="stat-item">
+                <span class="stat-label">Game Status:</span>
+                <span id="stats-status" class="stat-value">Idle</span>
+            </div>
+            <!-- New Stats -->
+            <div class="stat-item">
+                <span class="stat-label">Lives:</span>
+                <span id="stats-lives" class="stat-value text-red-600">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Boosters:</span>
+                <span id="stats-boosters" class="stat-value text-yellow-600">0</span>
+            </div>
+            <!-- End New Stats -->
+            <div class="stat-item">
+                <span class="stat-label">Mario AI Mode:</span>
+                <span id="stats-ai-mode" class="stat-value">Random</span>
+            </div>
+             <div class="stat-item">
+                <span class="stat-label">Turns Taken:</span>
+                <span id="stats-turns" class="stat-value">0</span>
+            </div>
+        </div>
+        
+        <div class="mt-auto pt-4">
+        </div>
+    </div>
+
+    
+    <div id="game-container"></div>
+
+    
+    <div id="game-info">
+        <h2 id="message-box" class="text-xl font-semibold">Select a difficulty to start!</h2>
+    </div>
+
+    <script type="module">
+        // === THREE.JS SCENE SETUP ===
+        let scene, camera, renderer, controls, mario;
+        let gridGroup = new THREE.Group();
+        const gridCells = []; 
+        const cellExtras = []; 
+        const clock = new THREE.Clock();
+
+        // === GAME LOGIC CONSTANTS ===
+        const EMPTY = 0;
+        const BOMB = 3;     // Renamed from OBSTACLE, this is now a trap
+        const BOOSTER = 4;  // New item
+        const ZOMBIE = 5;   // AI Enemy
+        
+        const GRID_SIZE = 10;
+        const BOMB_DENSITY = 0.2; // 20% chance for a bomb
+        const AI_SEARCH_DEPTH = 8; 
+        const ZOMBIE_PROXIMITY_THRESHOLD = 2; // How close a zombie needs to be to trigger flee AI
+
+        const START_POS = { x: 0, y: 0 };
+        const GOAL_POS = { x: GRID_SIZE - 1, y: GRID_SIZE - 1 };
+
+        // === CELL COLORS & MATERIALS ===
+        const COLOR_EMPTY = 0xeeeeee;
+        const COLOR_START = 0x4ade80;
+        const COLOR_GOAL = 0xf43f5e;
+        const COLOR_BOOSTER = 0xfcc700; // Yellow
+        const COLOR_BOMB = 0x8A2BE2; // Purple for bomb
+        
+        const matEmpty = new THREE.MeshStandardMaterial({ 
+            color: COLOR_EMPTY, 
+            roughness: 0.8, 
+            transparent: true, // Make grid cells slightly transparent
+            opacity: 0.8 
+        });
+        const matStart = new THREE.MeshStandardMaterial({ color: COLOR_START, roughness: 0.8 });
+        const matGoal = new THREE.MeshStandardMaterial({ color: COLOR_GOAL, roughness: 0.8 }); // Added matGoal
+        const matBooster = new THREE.MeshStandardMaterial({ color: COLOR_BOOSTER, roughness: 0.7, metalness: 0.3, emissive: 0xcccc00 }); // Added emissive for a base glow
+        const matBomb = new THREE.MeshStandardMaterial({ color: COLOR_BOMB, roughness: 0.7 }); 
+        const edgeMaterial = new THREE.LineBasicMaterial({ 
+            color: 0x999999, 
+            transparent: true, // Make grid lines slightly transparent
+            opacity: 0.5 
+        });
+
+        // === GAME STATE ===
+        let gameGrid = [];
+        let gameState = 'init'; // 'init', 'playing', 'finished'
+        let marioPos = { ...START_POS };
+        let zombies = []; // List of { pos: {x, y}, model: THREE.Group }
+        let boosters = []; // List of { pos: {x, y}, model: THREE.Group }
+        let isSpacePressed = false;
+        let isMarioTurn = true;
+        let turnsTaken = 0;
+        let gameLoopTimeout = null;
+        
+        // --- New Game State Variables ---
+        let gameSettings = { zombies: 2, boosters: 2 }; // Default
+        let marioLives = 2;
+        let marioBoosters = 0;
+
+        // === DOM ELEMENTS ===
+        const restartGameBtn = document.getElementById('restart-game-btn');
+        const messageBox = document.getElementById('message-box');
+        const gameInfoBox = document.getElementById('game-info');
+        const gameContainer = document.getElementById('game-container');
+        const difficultySelect = document.getElementById('difficulty-select');
+        
+        const statsStatus = document.getElementById('stats-status');
+        const statsAiMode = document.getElementById('stats-ai-mode');
+        const statsTurns = document.getElementById('stats-turns');
+        const statsLives = document.getElementById('stats-lives');
+        const statsBoosters = document.getElementById('stats-boosters');
+
+        // === INITIALIZATION ===
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf0f4f8);
+            scene.fog = new THREE.Fog(0xf0f4f8, 10, 50);
+
+            camera = new THREE.PerspectiveCamera(75, gameContainer.clientWidth / gameContainer.clientHeight, 0.1, 1000);
+            camera.position.set(GRID_SIZE / 2, GRID_SIZE * 1.5, GRID_SIZE * 1.5);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(gameContainer.clientWidth, gameContainer.clientHeight);
+            renderer.shadowMap.enabled = true;
+            gameContainer.appendChild(renderer.domElement);
+
+            const hemiLight = new THREE.HemisphereLight(0xadd8e6, 0x666666, 0.8);
+            hemiLight.position.set(0, 50, 0);
+            scene.add(hemiLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+            dirLight.position.set(10, 20, 5);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            scene.add(dirLight);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.target.set(GRID_SIZE / 2, 0, GRID_SIZE / 2);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.update();
+            
+            scene.add(gridGroup);
+            createMario();
+            
+            initGame(); // Initialize to show the empty board
+
+            // === EVENT LISTENERS ===
+            window.addEventListener('resize', onWindowResize);
+            
+            window.addEventListener('keydown', (e) => {
+                if (e.code === 'Space') {
+                    isSpacePressed = true;
+                    if(gameState === 'playing') {
+                        statsAiMode.textContent = 'Optimal';
+                        statsAiMode.style.color = '#16a34a';
+                    }
+                }
+            });
+            window.addEventListener('keyup', (e) => {
+                if (e.code === 'Space') {
+                    isSpacePressed = false;
+                    if(gameState === 'playing') {
+                        statsAiMode.textContent = 'Random';
+                        statsAiMode.style.color = '#1e293b';
+                    }
+                }
+            });
+            
+            // New Difficulty Listeners
+            difficultySelect.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    const difficulty = e.target.dataset.difficulty;
+                    if (difficulty === 'easy') {
+                        gameSettings = { zombies: 1, boosters: 1 };
+                    } else if (difficulty === 'medium') {
+                        gameSettings = { zombies: 2, boosters: 2 };
+                    } else if (difficulty === 'hard') {
+                        gameSettings = { zombies: 3, boosters: 3 };
+                    }
+                    
+                    // Start the game
+                    initGame(); // Re-initialize with new settings
+                    startGame(); // Start the game loop
+                }
+            });
+
+            restartGameBtn.addEventListener('click', initGame); // Resets to 'init' state
+            
+            animate();
+        }
+        
+        function onWindowResize() {
+            camera.aspect = gameContainer.clientWidth / gameContainer.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(gameContainer.clientWidth, gameContainer.clientHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            
+            const elapsedTime = clock.getElapsedTime();
+            
+            // Zombie bobbing
+            zombies.forEach((zombie, index) => {
+                if (zombie.model) {
+                    // Use elapsed time and index for a varied, smooth bob
+                    zombie.model.position.y = 0.5 + Math.sin(elapsedTime * 3 + index * 0.5) * 0.1;
+                }
+            });
+
+            // Make boosters bob and spin
+            boosters.forEach((booster, index) => {
+                if (booster.model) {
+                    // Bobbing
+                    booster.model.position.y = 0.5 + Math.sin(elapsedTime * 2 + index * 0.5) * 0.15;
+                    // Spinning
+                    booster.model.rotation.y = elapsedTime * 0.75 + index * 0.5;
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        // === 3D MODEL FUNCTIONS ===
+        
+        function createMario() {
+            mario = new THREE.Group();
+            const matRed = new THREE.MeshStandardMaterial({ color: 0xc42a22, roughness: 0.8 });
+            const matBlue = new THREE.MeshStandardMaterial({ color: 0x1a459b, roughness: 0.8 });
+            const matSkin = new THREE.MeshStandardMaterial({ color: 0xffdbac, roughness: 0.8 });
+            const matBrown = new THREE.MeshStandardMaterial({ color: 0x6b4423, roughness: 0.8 });
+            const matWhite = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 });
+            const matYellow = new THREE.MeshStandardMaterial({ color: 0xfcc700, roughness: 0.7 });
+            const matBlack = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.8 });
+
+            // [Mario model geometry... ]
+             const bodyGeo = new THREE.BoxGeometry(0.6, 0.6, 0.3);
+            const body = new THREE.Mesh(bodyGeo, matRed);
+            body.position.y = 0.5; body.castShadow = true; mario.add(body);
+            const overallsGeo = new THREE.BoxGeometry(0.7, 0.4, 0.35);
+            const overalls = new THREE.Mesh(overallsGeo, matBlue);
+            overalls.position.y = 0.2; overalls.castShadow = true; mario.add(overalls);
+            const legGeo = new THREE.BoxGeometry(0.25, 0.4, 0.25);
+            const legL = new THREE.Mesh(legGeo, matBlue);
+            legL.position.set(-0.2, -0.1, 0); legL.castShadow = true; mario.add(legL);
+            const legR = new THREE.Mesh(legGeo, matBlue);
+            legR.position.set(0.2, -0.1, 0); legR.castShadow = true; mario.add(legR);
+            const footGeo = new THREE.BoxGeometry(0.3, 0.15, 0.4);
+            const footL = new THREE.Mesh(footGeo, matBrown);
+            footL.position.set(-0.2, -0.4, 0.05); footL.castShadow = true; mario.add(footL);
+            const footR = new THREE.Mesh(footGeo, matBrown);
+            footR.position.set(0.2, -0.4, 0.05); footR.castShadow = true; mario.add(footR);
+            const armGeo = new THREE.BoxGeometry(0.2, 0.4, 0.2);
+            const armL = new THREE.Mesh(armGeo, matRed);
+            armL.position.set(-0.4, 0.4, 0); armL.castShadow = true; mario.add(armL);
+            const armR = new THREE.Mesh(armGeo, matRed);
+            armR.position.set(0.4, 0.4, 0); armR.castShadow = true; mario.add(armR);
+            const handGeo = new THREE.SphereGeometry(0.15, 12, 12);
+            const handL = new THREE.Mesh(handGeo, matWhite);
+            handL.position.set(-0.4, 0.2, 0); handL.castShadow = true; mario.add(handL);
+            const handR = new THREE.Mesh(handGeo, matWhite);
+            handR.position.set(0.4, 0.2, 0); handR.castShadow = true; mario.add(handR);
+            const headGeo = new THREE.SphereGeometry(0.3, 32, 16);
+            const head = new THREE.Mesh(headGeo, matSkin);
+            head.position.y = 0.8; head.castShadow = true; mario.add(head);
+            const capBaseGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.2, 32);
+            const capBase = new THREE.Mesh(capBaseGeo, matRed);
+            capBase.position.y = 1.0; capBase.castShadow = true; mario.add(capBase);
+            const capVisorGeo = new THREE.BoxGeometry(0.6, 0.1, 0.4);
+            const capVisor = new THREE.Mesh(capVisorGeo, matRed);
+            capVisor.position.set(0, 0.95, 0.2); capVisor.rotation.x = Math.PI / 10; capVisor.castShadow = true; mario.add(capVisor);
+            const capLogoCircleGeo = new THREE.CircleGeometry(0.1, 16);
+            const capLogoCircle = new THREE.Mesh(capLogoCircleGeo, matWhite);
+            capLogoCircle.position.set(0, 1.05, 0.35); capLogoCircle.rotation.x = -Math.PI / 10; mario.add(capLogoCircle);
+            const eyeGeo = new THREE.SphereGeometry(0.05, 8, 8);
+            const eyeL = new THREE.Mesh(eyeGeo, matBlack);
+            eyeL.position.set(-0.1, 0.85, 0.28); mario.add(eyeL);
+            const eyeR = new THREE.Mesh(eyeGeo, matBlack);
+            eyeR.position.set(0.1, 0.85, 0.28); mario.add(eyeR);
+            const moustacheGeo = new THREE.BoxGeometry(0.4, 0.1, 0.05);
+            const moustache = new THREE.Mesh(moustacheGeo, matBrown);
+            moustache.position.set(0, 0.75, 0.28); mario.add(moustache);
+            const buttonGeo = new THREE.SphereGeometry(0.06, 8, 8);
+            const buttonL = new THREE.Mesh(buttonGeo, matYellow);
+            buttonL.position.set(-0.2, 0.4, 0.18); mario.add(buttonL);
+            const buttonR = new THREE.Mesh(buttonGeo, matYellow);
+            buttonR.position.set(0.2, 0.4, 0.18); mario.add(buttonR);
+
+            mario.position.set(START_POS.x, 0.5, START_POS.y); 
+            scene.add(mario);
+        }
+        
+        function createZombie(x, y) {
+            const zombieGroup = new THREE.Group();
+            const matGreen = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.8 });
+            const matBlue = new THREE.MeshStandardMaterial({ color: 0x1a459b, roughness: 0.8 });
+            const matBrown = new THREE.MeshStandardMaterial({ color: 0x6b4423, roughness: 0.8 });
+            const matBlack = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.8 });
+            
+            // [Zombie model geometry... ]
+            const headGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+            const head = new THREE.Mesh(headGeo, matGreen);
+            head.position.y = 0.9; head.castShadow = true;
+            zombieGroup.add(head);
+            const bodyGeo = new THREE.BoxGeometry(0.6, 0.7, 0.3);
+            const body = new THREE.Mesh(bodyGeo, matBlue);
+            body.position.y = 0.35; body.castShadow = true;
+            zombieGroup.add(body);
+            const legGeo = new THREE.BoxGeometry(0.2, 0.4, 0.2);
+            const legL = new THREE.Mesh(legGeo, matBrown);
+            legL.position.set(-0.2, -0.2, 0); legL.castShadow = true;
+            zombieGroup.add(legL);
+            const legR = new THREE.Mesh(legGeo, matBrown);
+            legR.position.set(0.2, -0.2, 0); legR.castShadow = true;
+            zombieGroup.add(legR);
+            const eyeGeo = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+            const eyeL = new THREE.Mesh(eyeGeo, matBlack);
+            eyeL.position.set(-0.15, 0.9, 0.26);
+            zombieGroup.add(eyeL);
+            const eyeR = new THREE.Mesh(eyeGeo, matBlack);
+            eyeR.position.set(0.15, 0.9, 0.26);
+            zombieGroup.add(eyeR);
+
+            zombieGroup.position.set(x, 0.5, y); 
+            gridGroup.add(zombieGroup);
+            return zombieGroup;
+        }
+        
+        // --- NEW: Function to create Bomb model ---
+        function createBomb(x, y) {
+            const bombGroup = new THREE.Group();
+            
+            const bombGeo = new THREE.SphereGeometry(0.3, 16, 16);
+            const bombBody = new THREE.Mesh(bombGeo, matBomb);
+            bombBody.position.y = 0.3; 
+            bombBody.castShadow = true;
+            
+            const fuseGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.2, 8);
+            const fuseMat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.8 });
+            const fuse = new THREE.Mesh(fuseGeo, fuseMat);
+            fuse.position.y = 0.55; 
+            
+            bombGroup.add(bombBody);
+            bombGroup.add(fuse);
+            
+            bombGroup.position.set(x, 0.5, y); 
+            gridGroup.add(bombGroup);
+            return bombGroup;
+        }
+
+        // Renamed from createBomb
+        function createBooster(x, y) {
+            const boosterGroup = new THREE.Group();
+            
+            const boosterGeo = new THREE.SphereGeometry(0.25, 20, 20);
+            const boosterBody = new THREE.Mesh(boosterGeo, matBooster);
+            boosterBody.position.y = 0.3; 
+            boosterBody.castShadow = true;
+            
+            // --- NEW: Add a PointLight to make the booster glow ---
+            const boosterLight = new THREE.PointLight(COLOR_BOOSTER, 1.5, 3.0); // color, intensity, distance
+            boosterLight.position.y = 0.5;
+            boosterGroup.add(boosterLight);
+            // --- End New ---
+
+            boosterGroup.add(boosterBody);
+            
+            boosterGroup.position.set(x, 0.5, y); 
+            gridGroup.add(boosterGroup);
+
+            // Store the light so we can remove it later
+            boosterGroup.userData.light = boosterLight; 
+
+            return boosterGroup;
+        }
+
+        // === GAME SETUP & STATE ===
+
+        function updateMessageBox(message, type = 'info') {
+            messageBox.textContent = message;
+            gameInfoBox.classList.remove('info-box-info', 'info-box-win', 'info-box-lose');
+            
+            if (type === 'win') {
+                gameInfoBox.classList.add('info-box-win');
+            } else if (type === 'lose') {
+                gameInfoBox.classList.add('info-box-lose');
+            } else {
+                gameInfoBox.classList.add('info-box-info');
+            }
+        }
+
+        function initGame() {
+            if (gameLoopTimeout) clearTimeout(gameLoopTimeout);
+            gameState = 'init';
+            isMarioTurn = true;
+            isSpacePressed = false;
+            turnsTaken = 0;
+            marioPos = { ...START_POS };
+            zombies = [];
+            boosters = [];
+
+            // Reset game state to defaults based on settings
+            marioLives = 0; // --- CHANGED: Mario's initial life is 0 ---
+            marioBoosters = 0; // Start with 0 collected
+
+            while(gridGroup.children.length > 0){ 
+                gridGroup.remove(gridGroup.children[0]); 
+            }
+            gridCells.length = 0;
+            cellExtras.length = 0; 
+            gameGrid = [];
+            
+            for (let y = 0; y < GRID_SIZE; y++) {
+                gameGrid.push(new Array(GRID_SIZE).fill(EMPTY));
+            }
+
+            generateLevel(); // Generates level based on gameSettings
+            
+            mario.position.set(START_POS.x, 0.5, START_POS.y);
+            
+            // Re-enable difficulty buttons
+            difficultySelect.querySelectorAll('button').forEach(btn => btn.disabled = false);
+
+            updateMessageBox('Select a difficulty to start!', 'info');
+            statsStatus.textContent = 'Idle';
+            statsAiMode.textContent = 'Random';
+            statsAiMode.style.color = '#1e293b';
+            statsTurns.textContent = '0';
+            statsLives.textContent = marioLives;
+            statsBoosters.textContent = marioBoosters;
+        }
+
+        function startGame() {
+            if (gameState !== 'init') return;
+            gameState = 'playing';
+            
+            // Disable difficulty buttons
+            difficultySelect.querySelectorAll('button').forEach(btn => btn.disabled = true);
+
+            statsStatus.textContent = 'Playing';
+            updateMessageBox("Mario's Turn...", 'info');
+            gameLoop();
+        }
+
+        function generateLevel() {
+            // Set stats based on settings
+            marioLives = 0; // --- CHANGED: Mario's initial life is 0 ---
+            marioBoosters = 0;
+            statsLives.textContent = marioLives;
+            statsBoosters.textContent = marioBoosters;
+
+            const cellGeo = new THREE.BoxGeometry(1, 1, 1);
+            for (let y = 0; y < GRID_SIZE; y++) {
+                const cellRow = [];
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    let cell;
+                    let extra = null;
+                    const isStart = x === START_POS.x && y === START_POS.y;
+                    const isGoal = x === GOAL_POS.x && y === GOAL_POS.y;
+
+                    if (isStart) {
+                        cell = new THREE.Mesh(cellGeo, matStart);
+                    } else if (isGoal) {
+                        cell = new THREE.Mesh(cellGeo, matGoal);
+                    // --- NEW: Add bombs to the grid ---
+                    } else if (Math.random() < BOMB_DENSITY) {
+                        gameGrid[y][x] = BOMB;
+                        cell = new THREE.Mesh(cellGeo, matEmpty); // Base cell
+                        cell.visible = false; // Hide base cell
+                        extra = createBomb(x, y); 
+                    } else {
+                        cell = new THREE.Mesh(cellGeo, matEmpty);
+                        const edges = new THREE.EdgesGeometry(cellGeo);
+                        extra = new THREE.LineSegments(edges, edgeMaterial);
+                        extra.position.set(x, 0, y);
+                        gridGroup.add(extra);
+                    }
+                    
+                    cell.position.set(x, -0.5, y);
+                    cell.castShadow = true;
+                    cell.receiveShadow = true;
+                    gridGroup.add(cell);
+                    cellRow.push(cell);
+                }
+                gridCells.push(cellRow);
+            }
+
+            // Place zombies based on settings
+            for (let i = 0; i < gameSettings.zombies; i++) {
+                let placed = false;
+                while (!placed) {
+                    const x = Math.floor(Math.random() * GRID_SIZE);
+                    const y = Math.floor(Math.random() * GRID_SIZE);
+                    const distToStart = Math.abs(x - START_POS.x) + Math.abs(y - START_POS.y);
+                    if (gameGrid[y][x] === EMPTY && distToStart > 5) {
+                        gameGrid[y][x] = ZOMBIE;
+                        const zombieModel = createZombie(x, y); 
+                        zombies.push({ pos: { x, y }, model: zombieModel });
+                        placed = true;
+                    }
+                }
+            }
+
+            // Place boosters based on settings
+            for (let i = 0; i < gameSettings.boosters; i++) {
+                let placed = false;
+                while (!placed) {
+                    const x = Math.floor(Math.random() * GRID_SIZE);
+                    const y = Math.floor(Math.random() * GRID_SIZE);
+                    if (gameGrid[y][x] === EMPTY && !(x === START_POS.x && y === START_POS.y) && !(x === GOAL_POS.x && y === GOAL_POS.y) ) {
+                        gameGrid[y][x] = BOOSTER;
+                        const boosterModel = createBooster(x, y); 
+                        boosters.push({ pos: { x, y }, model: boosterModel, id: `b-${x}-${y}` });
+                        placed = true;
+                    }
+                }
+            }
+        }
+        
+        async function gameLoop() {
+            if (gameState !== 'playing') return;
+
+            let newPos;
+            if (isMarioTurn) {
+                // === MARIO'S TURN ===
+                updateMessageBox("Mario's Turn...", 'info');
+                turnsTaken++;
+                statsTurns.textContent = turnsTaken;
+
+                if (isSpacePressed) {
+                    statsAiMode.textContent = 'Optimal (Thinking...)';
+                    await new Promise(resolve => setTimeout(resolve, 20)); 
+                    newPos = findOptimalMove(); // Use new combined AI
+                    statsAiMode.textContent = 'Optimal';
+                } else {
+                    newPos = findRandomMove();
+                }
+                
+                gameGrid[marioPos.y][marioPos.x] = EMPTY; 
+                await animateMove(mario, marioPos, newPos, 200);
+                marioPos = newPos;
+                gameGrid[marioPos.y][marioPos.x] = EMPTY; // Mark his new spot
+
+            } else {
+                // === ZOMBIES' TURN ===
+                // --- NEW SPEED: Zombies move at 75% speed (skip every 4th turn) ---
+                if (turnsTaken % 4 !== 0) { 
+                    updateMessageBox("Zombies' Turn...", 'info');
+                    const movePromises = [];
+                    
+                    // --- NEW: Create a grid for this turn's pathfinding ---
+                    const currentZombieGrid = gameGrid.map(row => [...row]);
+                    // Mark all current zombie positions on this temp grid
+                    for (const z of zombies) {
+                        if (gameGrid[z.pos.y][z.pos.x] === EMPTY) { // Don't overwrite bombs/boosters
+                            currentZombieGrid[z.pos.y][z.pos.x] = ZOMBIE;
+                        }
+                    }
+
+                    // --- NEW (RE-FIXED): Pre-calculate all moves ---
+                    const plannedMoves = []; // Stores { zombie, newPos }
+                    
+                    for (const zombie of zombies) {
+                        // Pass the grid *with other zombies* to the pathfinder
+                        const newPos = findZombieMove(zombie.pos, marioPos, currentZombieGrid); 
+                        plannedMoves.push({ zombie, newPos, oldPos: zombie.pos });
+                    }
+
+                    // --- NEW (RE-FIXED): Resolve conflicts ---
+                    const finalMoves = [];
+                    const takenSquares = new Set();
+                    takenSquares.add(`${marioPos.x},${marioPos.y}`); // Block Mario's square
+
+                    for (const move of plannedMoves) {
+                        const newPosStr = `${move.newPos.x},${move.newPos.y}`;
+                        
+                        if (takenSquares.has(newPosStr)) {
+                            // CONFLICT! Try to find a random valid move
+                            const validMoves = getNeighbors(move.oldPos.x, move.oldPos.y, true).filter(n =>
+                                currentZombieGrid[n.y][n.x] !== BOMB &&
+                                currentZombieGrid[n.y][n.x] !== BOOSTER &&
+                                currentZombieGrid[n.y][n.x] !== ZOMBIE &&
+                                !takenSquares.has(`${n.x},${n.y}`) // Check against *final* taken squares
+                            );
+                            
+                            if (validMoves.length > 0) {
+                                const randomMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+                                finalMoves.push({ ...move, newPos: randomMove });
+                                takenSquares.add(`${randomMove.x},${randomMove.y}`);
+                            } else {
+                                // No valid random move, stay put
+                                finalMoves.push({ ...move, newPos: move.oldPos });
+                                // Only add its old square if it's not already taken (e.g., by another stuck zombie)
+                                if (!takenSquares.has(`${move.oldPos.x},${move.oldPos.y}`)) {
+                                    takenSquares.add(`${move.oldPos.x},${move.oldPos.y}`);
+                                }
+                            }
+                        } else {
+                            // NO CONFLICT
+                            finalMoves.push(move);
+                            takenSquares.add(newPosStr);
+                        }
+                    }
+
+                    // --- NEW (RE-FIXED): Execute final, conflict-free moves ---
+                    for (const move of finalMoves) {
+                        const { zombie, newPos, oldPos } = move;
+                        gameGrid[oldPos.y][oldPos.x] = EMPTY; // Free up old spot from main grid
+                        movePromises.push(animateMove(zombie.model, oldPos, newPos, 300));
+                        zombie.pos = newPos;
+                        gameGrid[newPos.y][newPos.x] = ZOMBIE; // Add to new spot on main grid
+                    }
+                    
+                    await Promise.all(movePromises);
+                } else {
+                    updateMessageBox("Zombies' Turn (Skipped)", 'info');
+                    await new Promise(resolve => setTimeout(resolve, 100)); 
+                }
+            }
+
+            if (checkCollisionsAndWin()) return; // NEW: Combined check
+
+            isMarioTurn = !isMarioTurn;
+            gameLoopTimeout = setTimeout(gameLoop, 50); 
+        }
+        
+        // --- NEW: Combined Collision and Win Check ---
+        function checkCollisionsAndWin() {
+            // 1. Check for Win
+            if (marioPos.x === GOAL_POS.x && marioPos.y === GOAL_POS.y) {
+                endGame('YOU WIN! Mario reached the goal!');
+                return true;
+            }
+            
+            // 2. Check for Zombie Collision
+            const caughtBy = zombies.find(z => z.pos.x === marioPos.x && z.pos.y === marioPos.y);
+            if (caughtBy) {
+                handleMarioCaught(caughtBy);
+                return gameState === 'finished'; // Stop if game ended
+            }
+
+            // 3. Check for Booster Collection
+            const collectedBooster = boosters.find(b => b.pos.x === marioPos.x && b.pos.y === marioPos.y);
+            if (collectedBooster) {
+                handleBoosterCollect(collectedBooster);
+            }
+
+            return false; // Game continues
+        }
+
+        // --- UPDATED: Handle Mario Getting Caught (FINAL LOGIC) ---
+        function handleMarioCaught(zombie) {
+            if (marioBoosters > 0) {
+                // --- HAS BOOSTER ---
+                marioBoosters--;
+                killZombie(zombie); // Zombie is permanently gone
+                
+                updateMessageBox("Mario used a booster shield!", 'info'); // SUCCESS
+                statsBoosters.textContent = marioBoosters;
+                // MARIO STAYS IN PLACE. NO LIFE LOST.
+
+            } else {
+                // --- NO BOOSTER ---
+                marioLives--;
+                updateMessageBox("Mario was caught and lost a life!", 'lose');
+                statsLives.textContent = marioLives;
+                // statsBoosters.textContent = marioBoosters; // No change
+
+                // Check for game over
+                if (marioLives <= 0) {
+                    endGame('YOU LOSE! Mario ran out of lives!');
+                    return; // --- FIX: Added return to stop code execution ---
+                }
+
+                // --- IF NOT GAME OVER, RESPAWN BOTH ---
+
+                // 1. Respawn zombie
+                gameGrid[zombie.pos.y][zombie.pos.x] = EMPTY;
+                let placed = false;
+                 while (!placed) {
+                    const x = Math.floor(Math.random() * GRID_SIZE);
+                    const y = Math.floor(Math.random() * GRID_SIZE);
+                    const distToStart = Math.abs(x - START_POS.x) + Math.abs(y - START_POS.y);
+                    if (gameGrid[y][x] === EMPTY && distToStart > 5) {
+                        zombie.pos = { x, y };
+                        zombie.model.position.set(x, 0.5, y);
+                        gameGrid[y][x] = ZOMBIE;
+                        placed = true;
+                    }
+                }
+                
+                // 2. Respawn Mario
+                marioPos = { ...START_POS };
+                mario.position.set(START_POS.x, 0.5, START_POS.y);
+            }
+        }
+
+        // --- NEW: Handle Booster Collection ---
+        function handleBoosterCollect(booster) {
+            marioBoosters++;
+            marioLives++; // --- NEW: Mario gains 1 life when collecting a booster ---
+            killBooster(booster); // Booster is gone
+            statsBoosters.textContent = marioBoosters;
+            statsLives.textContent = marioLives; // --- NEW: Update lives display ---
+            updateMessageBox("Mario collected a booster and gained a life!", 'info');
+        }
+        
+        // --- NEW: Helper functions to remove items ---
+        function killZombie(zombie) {
+            const index = zombies.findIndex(z => z === zombie);
+            if (index > -1) zombies.splice(index, 1);
+            gridGroup.remove(zombie.model);
+            gameGrid[zombie.pos.y][zombie.pos.x] = EMPTY;
+        }
+
+        function killBooster(booster) {
+            const index = boosters.findIndex(b => b.id === booster.id);
+            if (index > -1) boosters.splice(index, 1);
+            
+            // --- NEW: Also remove the booster's light from the group ---
+            if (booster.model.userData.light) {
+                booster.model.remove(booster.model.userData.light);
+            }
+            gridGroup.remove(booster.model);
+            gameGrid[booster.pos.y][booster.pos.x] = EMPTY;
+        }
+
+
+        function endGame(message) {
+            gameState = 'finished';
+            
+            if (message.includes('WIN')) {
+                updateMessageBox(message, 'win');
+            } else {
+                updateMessageBox(message, 'lose');
+            }
+
+            statsStatus.textContent = 'Finished';
+            // Re-enable difficulty buttons
+            difficultySelect.querySelectorAll('button').forEach(btn => btn.disabled = false);
+        }
+
+        // === MOVEMENT & ANIMATION ===
+
+        function getNeighbors(x, y, allowDiagonals = true) { // Default to true
+            const neighbors = [];
+            const directions = [
+                {x: 0, y: 1}, {x: 1, y: 0}, {x: 0, y: -1}, {x: -1, y: 0}
+            ];
+            if (allowDiagonals) {
+                directions.push(
+                    {x: 1, y: 1}, {x: 1, y: -1}, {x: -1, y: -1}, {x: -1, y: 1}
+                );
+            }
+
+            for (const dir of directions) {
+                const nx = x + dir.x;
+                const ny = y + dir.y;
+                if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE) {
+                    neighbors.push({ x: nx, y: ny });
+                }
+            }
+            return neighbors;
+        }
+        
+        function getValidMoves(pos, grid) {
+            // Mario can move in all 8 directions
+            return getNeighbors(pos.x, pos.y, true).filter(n => 
+                grid[n.y][n.x] !== BOMB
+            );
+        }
+
+        function animateMove(model, fromPos, toPos, duration) {
+            return new Promise(resolve => {
+                const start = new THREE.Vector3(fromPos.x, model.position.y, fromPos.y);
+                const target = new THREE.Vector3(toPos.x, model.position.y, toPos.y);
+
+                const direction = new THREE.Vector3().subVectors(target, start).normalize();
+                if (direction.lengthSq() > 0.001) {
+                    const targetAngle = Math.atan2(direction.x, direction.z);
+                    model.rotation.y = targetAngle;
+                }
+
+                let startTime = null;
+                function step(timestamp) {
+                    if (!startTime) startTime = timestamp;
+                    const progress = Math.min(1, (timestamp - startTime) / duration);
+                    
+                    model.position.lerpVectors(start, target, progress);
+                    
+                    if (model === mario) { 
+                        const jumpPhase = progress * Math.PI;
+                        model.position.y = 0.5 + Math.sin(jumpPhase) * 0.4;
+                    }
+
+                    if (progress < 1) {
+                        requestAnimationFrame(step);
+                    } else {
+                        model.position.copy(target);
+                        if(model === mario) model.position.y = 0.5; 
+                        resolve();
+                    }
+                }
+                requestAnimationFrame(step);
+            });
+        }
+
+        // === AI LOGIC ===
+
+        function findRandomMove() {
+            const validMoves = getValidMoves(marioPos, gameGrid);
+            if (validMoves.length > 0) {
+                return validMoves[Math.floor(Math.random() * validMoves.length)];
+            }
+            return marioPos; 
+        }
+
+        // --- UPDATED: findZombieMove to prevent stacking ---
+        function findZombieMove(zombiePos, targetPos, currentZombieGrid) { // Added currentZombieGrid
+            // --- Plan A: Treat other zombies as obstacles ---
+            const zombieGridPlanA = currentZombieGrid.map(row => 
+                row.map(cell => (cell === BOMB || cell === BOOSTER || cell === ZOMBIE ? BOMB : EMPTY))
+            );
+            
+            // Mark the *current* zombie's own position as EMPTY so it can move
+            if(zombieGridPlanA[zombiePos.y]) zombieGridPlanA[zombiePos.y][zombiePos.x] = EMPTY; 
+            
+            let result = aStarSearch(zombiePos, targetPos, zombieGridPlanA, true); // Plan A
+
+            // --- NEW: Plan B (If Plan A fails) ---
+            if (result.path.length <= 1 && !(zombiePos.x === targetPos.x && zombiePos.y === targetPos.y)) {
+                // Plan A failed (stuck), try Plan B (ignore other zombies)
+                const zombieGridPlanB = currentZombieGrid.map(row => 
+                    row.map(cell => (cell === BOMB || cell === BOOSTER ? BOMB : EMPTY)) // Only avoid bombs/boosters
+                );
+                if(zombieGridPlanB[zombiePos.y]) zombieGridPlanB[zombiePos.y][zombiePos.x] = EMPTY;
+                result = aStarSearch(zombiePos, targetPos, zombieGridPlanB, true);
+                
+                // --- NEW: Plan C (If Plan B also fails, e.g., trapped) ---
+                if (result.path.length <= 1) {
+                    // Try a random valid move
+                    const validMoves = getNeighbors(zombiePos.x, zombiePos.y, true).filter(n =>
+                        currentZombieGrid[n.y][n.x] !== BOMB &&
+                        currentZombieGrid[n.y][n.x] !== BOOSTER &&
+                        currentZombieGrid[n.y][n.x] !== ZOMBIE
+                    );
+                    if (validMoves.length > 0) {
+                        return validMoves[Math.floor(Math.random() * validMoves.length)];
+                    }
+                    // If no random moves, just stay put
+                    return zombiePos;
+                }
+            }
+            // --- End Plan B/C ---
+
+            if (result.path.length > 1) {
+                // Only move if not already on top of Mario
+                if(zombiePos.x === targetPos.x && zombiePos.y === targetPos.y) return zombiePos;
+                return result.path[1]; 
+            }
+            return zombiePos;
+        }
+
+        // --- UPDATED: Top-level AI function ---
+        function findOptimalMove() {
+            // AI always uses Minimax. The heuristic function will handle fleeing vs. attacking.
+            return findOptimalMove_Minimax();
+        }
+
+        // --- REMOVED: Helper to check for threats (no longer needed) ---
+        // --- REMOVED: Helper to find nearest booster (now part of heuristic) ---
+
+
+        // This is the main Minimax AI
+        function findOptimalMove_Minimax() {
+            let bestScore = -Infinity;
+            let bestMove = marioPos;
+            const validMoves = getValidMoves(marioPos, gameGrid);
+
+            // Check for immediate win
+            for (const move of validMoves) {
+                if(move.x === GOAL_POS.x && move.y === GOAL_POS.y) return move;
+            }
+
+            const initialSimState = {
+                mario: marioPos,
+                zombies: zombies.map(z => z.pos),
+                grid: gameGrid,
+            };
+
+            for (const move of validMoves) {
+                const newSimState = simulateMove(initialSimState, move, true);
+                // Zombie turn is skipped in simulation for simplicity, just evaluate Mario's move
+                const score = minimax(newSimState, AI_SEARCH_DEPTH - 1, -Infinity, Infinity, false); 
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = move;
+                }
+            }
+            return bestMove;
+        }
+        
+        function minimax(simState, depth, alpha, beta, isMaximizingPlayer) {
+            const heuristic = evaluateHeuristic(simState);
+            if (depth === 0 || Math.abs(heuristic) > 500000) {
+                return heuristic;
+            }
+
+            if (isMaximizingPlayer) {
+                // --- MARIO'S (MAX) TURN ---
+                let maxScore = -Infinity;
+                const validMoves = getValidMoves(simState.mario, simState.grid);
+                if (validMoves.length === 0) return -1000000; 
+
+                for (const move of validMoves) {
+                    const newSimState = simulateMove(simState, move, true);
+                    const score = minimax(newSimState, depth - 1, alpha, beta, false);
+                    maxScore = Math.max(maxScore, score);
+                    alpha = Math.max(alpha, maxScore);
+                    if (beta <= alpha) break; 
+                }
+                return maxScore;
+
+            } else {
+                // --- ZOMBIES' (MIN) TURN ---
+                let minScore = Infinity;
+                // Simulate zombies moving one step closer
+                const newSimState = simulateMove(simState, null, false);
+                const score = minimax(newSimState, depth - 1, alpha, beta, true);
+                minScore = Math.min(minScore, score);
+                beta = Math.min(beta, minScore);
+                return minScore;
+            }
+        }
+
+        function simulateMove(simState, move, isMario) {
+            let newMarioPos = simState.mario;
+            let newZombiePos = [...simState.zombies];
+            
+            if (isMario) {
+                newMarioPos = move;
+            } else {
+                // Simulate zombies moving
+                newZombiePos = newZombiePos.map(zPos => {
+                    // --- Create grid for this specific zombie's simulation ---
+                    const zombieGrid = simState.grid.map(row => 
+                        row.map(cell => (cell === BOMB || cell === BOOSTER ? BOMB : EMPTY))
+                    );
+                    // Add other zombies as obstacles
+                    for (const otherZ of simState.zombies) {
+                        if (otherZ !== zPos) {
+                            if(zombieGrid[otherZ.y]) zombieGrid[otherZ.y][otherZ.x] = BOMB;
+                        }
+                    }
+                    // --- End grid creation ---
+
+                    const result = aStarSearch(zPos, newMarioPos, zombieGrid, true);
+                    if(result.path.length > 1) return result.path[1];
+                    return zPos;
+                });
+            }
+            
+            return {
+                mario: newMarioPos,
+                zombies: newZombiePos,
+                grid: simState.grid
+            };
+        }
+
+        // === UPDATED HEURISTIC FUNCTION ===
+        function evaluateHeuristic(simState) {
+            const { mario, zombies, grid } = simState;
+
+            if (mario.x === GOAL_POS.x && mario.y === GOAL_POS.y) {
+                return 1000000; // Win
+            }
+            let minZombieDist = Infinity;
+            for (const zPos of zombies) {
+                if (mario.x === zPos.x && mario.y === zPos.y) {
+                    return -1000000; // Loss
+                }
+                const dist = Math.abs(mario.x - zPos.x) + Math.abs(mario.y - zPos.y);
+                if (dist < minZombieDist) minZombieDist = dist;
+            }
+
+            if (minZombieDist === 0) return -1000000; 
+            
+            // Create a grid for A* where zombies are obstacles
+            const marioGrid = grid.map(row => [...row]);
+            for (const zPos of zombies) {
+                if (grid[zPos.y] && grid[zPos.y][zPos.x] !== BOMB) { 
+                    if(marioGrid[zPos.y]) marioGrid[zPos.y][zPos.x] = BOMB; // Treat zombies as bombs (obstacles)
+                }
+            }
+
+            const goalPath = aStarSearch(mario, GOAL_POS, marioGrid, true);
+            // If no path to goal (blocked by zombies), this is very bad
+            const distToGoal = (goalPath.path.length > 0) ? goalPath.path.length : 1000; 
+            
+            // --- UPDATED: Calculate distance to nearest booster ---
+            // Need a local helper *inside* heuristic or pass boosters
+            let minBoosterDist = 50; // Assume far away (neutral score) if no boosters
+            if (boosters.length > 0) {
+                 for (const b of boosters) {
+                    const dist = Math.abs(mario.x - b.pos.x) + Math.abs(mario.y - b.pos.y);
+                    if (dist < minBoosterDist) {
+                        minBoosterDist = dist;
+                    }
+                }
+            }
+            // --- End booster calc ---
+            
+            let score = 0;
+            // --- UPDATED: Priorities set as requested ---
+            // Priority 1: Goal (High reward for being close)
+            score += (100 - distToGoal) * 1000; 
+            // Priority 2: Safety from Zombies (High reward for being far)
+            score += (minZombieDist) * 200;    
+            // Priority 3: Proximity to Boosters (Lower reward for being close)
+            score += (50 - minBoosterDist) * 50; 
+            
+            return score;
+        }
+
+        // === A* HELPER FUNCTION ===
+        function aStarSearch(startPos, goalPos, grid, allowDiagonals) {
+            const openSet = [];
+            const closedSet = new Set();
+            
+            const startNode = {
+                x: startPos.x, y: startPos.y,
+                g: 0, h: 0, f: 0, parent: null
+            };
+            openSet.push(startNode);
+
+            while (openSet.length > 0) {
+                let lowestFIndex = 0;
+                for (let i = 1; i < openSet.length; i++) {
+                    if (openSet[i].f < openSet[lowestFIndex].f) {
+                        lowestFIndex = i;
+                    }
+                }
+                const current = openSet.splice(lowestFIndex, 1)[0];
+                const currentStr = `${current.x},${current.y}`;
+
+                if (current.x === goalPos.x && current.y === goalPos.y) {
+                    const path = [];
+                    let temp = current;
+                    while (temp) {
+                        path.push({x: temp.x, y: temp.y});
+                        temp = temp.parent;
+                    }
+                    return { path: path.reverse(), stats: {} };
+                }
+
+                closedSet.add(currentStr);
+                
+                const neighbors = getNeighbors(current.x, current.y, allowDiagonals);
+                for (const neighborPos of neighbors) {
+                    const neighborStr = `${neighborPos.x},${neighborPos.y}`;
+
+                    // --- Updated to check for BOMB or ZOMBIE ---
+                    if (closedSet.has(neighborStr) || (grid[neighborPos.y] && (grid[neighborPos.y][neighborPos.x] === BOMB || grid[neighborPos.y][neighborPos.x] === ZOMBIE))) {
+                        continue;
+                    }
+
+                    const isDiagonal = (neighborPos.x !== current.x && neighborPos.y !== current.y);
+                    const moveCost = current.g + (isDiagonal ? 1.414 : 1); 
+
+                    let neighborNode = openSet.find(n => n.x === neighborPos.x && n.y === neighborPos.y);
+
+                    if (!neighborNode) {
+                        neighborNode = {
+                            x: neighborPos.x, y: neighborPos.y,
+                            g: moveCost,
+                            h: Math.abs(neighborPos.x - goalPos.x) + Math.abs(neighborPos.y - goalPos.y),
+                            parent: current
+                        };
+                        neighborNode.f = neighborNode.g + neighborNode.h;
+                        openSet.push(neighborNode);
+                    } else if (moveCost < neighborNode.g) {
+                        neighborNode.g = moveCost;
+                        neighborNode.f = neighborNode.g + neighborNode.h;
+                        neighborNode.parent = current;
+                    }
+                }
+            }
+            
+            return { path: [], stats: {} }; // No path found
+        }
+        
+        // === START THE APP ===
+        init();
+    </script>
+</body>
+</html>
